@@ -1,42 +1,37 @@
-# Advanced Sample Hardhat Project
+# OpenLab Smart Contracts
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+**Note:** WIP.
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+Deployed contracts on Rinkeby Testnet (as of 04 Mar 2022)
+* [Exchange.sol](https://rinkeby.etherscan.io/address/0x55b63e51cedeb16c777f984812d8653e4b9b803e#code)
+* [OpenLabNFT.sol](https://rinkeby.etherscan.io/address/0xd301acda1075a59aba9c4c536695b054ccb0754a) -- this contract's source code has not been "verified" by Etherscan. To see the source code, view the [IPFS publication](https://ipfs.io/ipfs/QmNSG2xbSBVu2sydKXN731KQr5AqTijpfiF3nxhKumjR91) (use Brave browser).
 
-Try running some of the following tasks:
+## Contract Descriptions
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.js
-node scripts/deploy.js
-npx eslint '**/*.js'
-npx eslint '**/*.js' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
-```
+### Exchange.sol
 
-# Etherscan verification
+The OpenLab exchange is the core of where Web3 transactions will be managed. Each Job has a **client, provider, job cost, job URI (job metadata on IPFS) and status**.
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+Jobs can be created, closed, and cancelled on the Exchange. Single jobs can also be read for client, provider, and status info.  
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
+### Escrow.sol
 
-```shell
-hardhat run --network ropsten scripts/deploy.js
-```
+When a job is created, the job funds are temporarily stored in the Escrow contract. 
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+### OpenLabNFT.sol
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
+The OpenLabNFT contract is our ERC721 token which gets transferred upon completion of a job. Checks that both the provider and client are validated addresses per Exchange.sol, and mints an OpenLab NFT (OLNFT).
+
+## Setup
+
+TO DO: add the Hardhat-sepcific instructions.
+
+## In Progress
+
+* Implement ExchangeFactory pattern so LabDAO multisig can initialize and own the factory contract
+* Finish Escrow payable functionality
+* Job type toggling
+* Payable token toggling
+* Add test files to Hardhat
+* Polygon testnet deployment (target by Apr 1)
+* Polygon mainnet deployment (target by Apr 11)
