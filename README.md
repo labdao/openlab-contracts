@@ -12,11 +12,11 @@ Deployed contracts on Rinkeby Testnet (as of 04 Mar 2022)
 
 The OpenLab exchange is the core of where Web3 transactions will be managed. Each Job has a **client, provider, job cost, job URI (job metadata on IPFS) and status**.
 
-Jobs can be created, closed, and cancelled on the Exchange. 
+Jobs can be created, closed, and cancelled on the Exchange.
 
 ### Escrow.sol
 
-When a job is created, the job funds are temporarily stored in the Escrow contract. 
+When a job is created, the job funds are temporarily stored in the Escrow contract. The Escrow contract received Ether when a new job is created on the Exchange. When a provider completes a job, the swap function gets called which triggers a) Minting of an OpenLab NFT and transferring it to the client, b) Sending the deposited job funds to the provider, and c) Setting the job status to closed.
 
 ### OpenLabNFT.sol
 
@@ -29,8 +29,6 @@ TO DO: add the Hardhat-specific instructions.
 ## In Progress
 
 * Implement ExchangeFactory pattern so LabDAO multisig can initialize and own the factory contract
-* Finish Escrow payable functionality
-* Job type toggling
 * Payable token toggling
 * Add test files to Hardhat
 * Polygon testnet deployment (target by Apr 1)
