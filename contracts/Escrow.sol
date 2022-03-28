@@ -5,12 +5,15 @@ import "./Exchange.sol";
 import "./OpenLabNFT.sol";
 
 contract Escrow is Exchange, OpenLabNFT {
-  address payable public client;
-  address payable public provider;
   address payable public arbiter;
+
+  // Add LabDAO multisig address
   address payable public labDao;
 
   mapping (uint => uint) public jobCosts;
+
+  // Event for receiving funds
+  event Received(address, uint);
 
   // constructor (address payable _client, address payable _provider, address payable _arbiter, address payable _labDaoMultiSig) public {
   //   client = _client;
@@ -19,25 +22,38 @@ contract Escrow is Exchange, OpenLabNFT {
   //   labDao = _labDaoMultiSig;
   // }
 
-  
-
-  // function depositFunds(uint jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
-  //   jobCosts[jobId] = 
-  // }
-
-  function depositNFT(uint jobId) public isValidJob(jobId) isActiveJob(jobId) {
-    // receives minted NFT
+  receive() external payable {
+    emit Received(msg.sender, msg.value);
   }
 
-  fallback() external payable {}
+  function swap(uint jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
+    address memory client = Exchange.jobsList[jobId].client;
+    address memory provider = Exchange.jobsList[jobId].provider;
 
-  function swap(uint jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
-    // send NFT to client
+    // 95% sent to provider
+    uint memory providerRevenue = Exchange.jobsList[jobId].jobCost * 19 / 20;
+    // 5% sent to LabDAO
+    uint memory marketRevenue = Exchange.jobsList[jobId].jobCost / 20;
 
-    // send job cost amount to provider
-    // NOTE: this needs to be updated since transfer() is not a secure option
-    Exchange.jobsList[jobId].provider.transfer(Exchange.jobsList[jobId].jobCost);
+    // Send NFT to client
+    OpenLabNFT.safeMint(client, tokenURI);
+
+    // Send Ether to provider and LabDAO
+    sendViaCall(provider, providerRevenue);
+    sendViaCall(labDao, marketRevenue);
+
     // close job
     closeJob(jobId);
+  }
+
+  // When a job is cancelled, funds should be returned to the client
+  function returnFunds(uint jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
+    sendViaCall(Exchange.jobsList[jobId].client, Exchange.jobsList[jobId].jobCost);
+    cancelJob(jobId);
+  }
+
+  function sendViaCall(address payable _to, uint amount) payable {
+    (bool success, bytes memory data) = _to.call{value: amount}("");
+    require(success, "Failed to send Ether");
   }
 }

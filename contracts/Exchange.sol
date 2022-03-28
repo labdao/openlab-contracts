@@ -14,6 +14,7 @@ contract Exchange is ReentrancyGuard {
         address payable client;
         address payable provider;
         uint jobCost;
+        // For now, payments should only be in Ether
         // address payableToken;
         string jobURI;
         JobStatus status;
@@ -38,8 +39,8 @@ contract Exchange is ReentrancyGuard {
     event jobCancelled(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobClosed(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
 
-    // INSERT ESCROW ADDRESS BELOW
-    // address public escrowAddress = ;
+    // update this to escrow address
+    address public escrowAddress = ;
 
     // ------------------------ Core functions ------------------------ //
 
@@ -66,27 +67,25 @@ contract Exchange is ReentrancyGuard {
         clientAddresses[_client] = true;
         providerAddresses[_provider] = true;
 
-        // send deposited amount to the escrow contract
-        // NOTE: update from transfer to sendViaCall (see below)
-        // NOTE: figure out math for conversion of _jobCost (ETH) to a value that can be passed for the transfer
-        // payable(escrowAddress).transfer(msg.value);
-
+        // Send deposited amount to the escrow contract
+        sendViaCall(escrowAddress, _jobCost);
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
         emit jobCreated(jobIdCount, _client, _provider, _jobCost, _jobURI, job.status);
 
     }
 
-    // function sendViaCall(address payable _to) public payable {
-    //     (bool sent, bytes memory data) = _to.call{value: msg.value}("");
-    //     require(sent, "Failed to send Ether");
-    // }
+    function sendViaCall(address payable _to, uint amount) public payable {
+        (bool sent, bytes memory data) = _to.call{value: amount}("");
+        require(sent, "Failed to send Ether");
+    }
 
     // check visibility
     function closeJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) {
         Job memory job = jobsList[_jobId];
+        
+        
         job.status = JobStatus.CLOSED;
-
         // We emit the event of job closing so that the Graph protocol can be updated
         emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
@@ -101,16 +100,16 @@ contract Exchange is ReentrancyGuard {
         emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
-    function readJob(uint jobId) public view isValidJob(jobId) returns (address, address, uint, string memory, JobStatus) {
-        return (
-            jobsList[jobId].client, 
-            jobsList[jobId].provider, 
-            jobsList[jobId].jobCost, 
-            // jobsList[jobId].payableToken, 
-            jobsList[jobId].jobURI,
-            jobsList[jobId].status
-        );
-    }
+    // function readJob(uint jobId) public view isValidJob(jobId) returns (address, address, uint, string memory, JobStatus) {
+    //     return (
+    //         jobsList[jobId].client, 
+    //         jobsList[jobId].provider, 
+    //         jobsList[jobId].jobCost, 
+    //         // jobsList[jobId].payableToken, 
+    //         jobsList[jobId].jobURI,
+    //         jobsList[jobId].status
+    //     );
+    // }
 
     // create functions to manually add "whitelisted" clients and providers by the multisig
     // this is probably a separate contract that is Ownable and can only be called by multisig

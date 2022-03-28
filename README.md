@@ -24,7 +24,7 @@ The OpenLabNFT contract is our ERC721 token which gets transferred upon completi
 
 ## Setup
 
-TO DO: add the Hardhat-sepcific instructions.
+TO DO: add the Hardhat-specific instructions.
 
 ## In Progress
 
