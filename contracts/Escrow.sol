@@ -27,20 +27,20 @@ contract Escrow is Exchange, OpenLabNFT {
   }
 
   function swap(uint jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
-    address memory client = Exchange.jobsList[jobId].client;
-    address memory provider = Exchange.jobsList[jobId].provider;
+    address client = Exchange.jobsList[jobId].client;
+    address provider = Exchange.jobsList[jobId].provider;
 
     // 95% sent to provider
-    uint memory providerRevenue = Exchange.jobsList[jobId].jobCost * 19 / 20;
+    uint providerRevenue = Exchange.jobsList[jobId].jobCost * 19 / 20;
     // 5% sent to LabDAO
-    uint memory marketRevenue = Exchange.jobsList[jobId].jobCost / 20;
+    uint marketRevenue = Exchange.jobsList[jobId].jobCost / 20;
 
     // Send NFT to client
     OpenLabNFT.safeMint(client, tokenURI);
 
     // Send Ether to provider and LabDAO
-    sendViaCall(provider, providerRevenue);
-    sendViaCall(labDao, marketRevenue);
+    sendViaCall(payable(provider), providerRevenue);
+    sendViaCall(payable(labDao), marketRevenue);
 
     // close job
     closeJob(jobId);
@@ -52,8 +52,8 @@ contract Escrow is Exchange, OpenLabNFT {
     cancelJob(jobId);
   }
 
-  function sendViaCall(address payable _to, uint amount) payable {
-    (bool success, bytes memory data) = _to.call{value: amount}("");
-    require(success, "Failed to send Ether");
-  }
+  // function sendFunds(address payable _to, uint amount) override public payable {
+  //   (bool success, bytes memory data) = _to.call{value: amount}("");
+  //   require(success, "Failed to send Ether");
+  // }
 }

@@ -34,13 +34,12 @@ contract Exchange is ReentrancyGuard {
     uint jobIdCount;
 
     // Events for Graph protocol
-    // event jobCreated(address _caller, Job indexed _job);
     event jobCreated(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobCancelled(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobClosed(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
 
     // update this to escrow address
-    address public escrowAddress = ;
+    address public escrowAddress = 0x000000000000000000000000000000000000dEaD;
 
     // ------------------------ Core functions ------------------------ //
 
@@ -68,7 +67,7 @@ contract Exchange is ReentrancyGuard {
         providerAddresses[_provider] = true;
 
         // Send deposited amount to the escrow contract
-        sendViaCall(escrowAddress, _jobCost);
+        sendViaCall(payable(escrowAddress), _jobCost);
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
         emit jobCreated(jobIdCount, _client, _provider, _jobCost, _jobURI, job.status);
@@ -84,7 +83,6 @@ contract Exchange is ReentrancyGuard {
     function closeJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) {
         Job memory job = jobsList[_jobId];
         
-        
         job.status = JobStatus.CLOSED;
         // We emit the event of job closing so that the Graph protocol can be updated
         emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
@@ -92,9 +90,10 @@ contract Exchange is ReentrancyGuard {
 
     // check visibility
     function cancelJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) {
+        // Escrow handles returning funds back to client
+
         Job memory job = jobsList[_jobId];
         jobsList[_jobId].status = JobStatus.CANCELLED;
-        // need to return funds from escrow to the client
 
         // We emit the event of job cancellation so that the Graph protocol can be updated
         emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);

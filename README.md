@@ -12,7 +12,7 @@ Deployed contracts on Rinkeby Testnet (as of 04 Mar 2022)
 
 The OpenLab exchange is the core of where Web3 transactions will be managed. Each Job has a **client, provider, job cost, job URI (job metadata on IPFS) and status**.
 
-Jobs can be created, closed, and cancelled on the Exchange. Single jobs can also be read for client, provider, and status info.  
+Jobs can be created, closed, and cancelled on the Exchange. 
 
 ### Escrow.sol
 
