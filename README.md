@@ -28,8 +28,8 @@ TO DO: add the Hardhat-specific instructions.
 
 ## In Progress
 
-* Implement ExchangeFactory pattern so LabDAO multisig can initialize and own the factory contract
+* Ownable ExchangeFactory my LabDAO multisig
 * Payable token toggling
 * Add test files to Hardhat
-* Polygon testnet deployment (target by Apr 1)
-* Polygon mainnet deployment (target by Apr 11)
+* Polygon testnet deployment
+* Polygon mainnet deployment

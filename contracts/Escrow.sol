@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "./Exchange.sol";
 import "./OpenLabNFT.sol";
 
+
+// probably shouldn't inherit these
+
 contract Escrow is Exchange, OpenLabNFT {
   address payable public arbiter;
 
