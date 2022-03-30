@@ -8,6 +8,9 @@ Deployed contracts on Rinkeby Testnet (as of 04 Mar 2022)
 
 ## Contract Descriptions
 
+![Contract Flow](static/labdao-contracts_30Mar2022.png)
+WIP graphic to be updated
+
 ### Exchange.sol
 
 The OpenLab exchange is the core of where Web3 transactions will be managed. Each Job has a **client, provider, job cost, job URI (job metadata on IPFS) and status**.
