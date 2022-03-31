@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./Exchange.sol";
 
-contract OpenLabNFT is ERC721, ERC721URIStorage, Exchange, Ownable {
+contract OpenLabNFT is ERC721, ERC721URIStorage, Ownable {
 
   // ---------------------------- State Management ----------------------------------------//
   using Counters for Counters.Counter;

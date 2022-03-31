@@ -5,14 +5,16 @@ import "./Exchange.sol";
 
 contract ExchangeFactory is Ownable {
     Exchange[] public exchanges;
+
     uint disabledCount;
 
-    event ExchangeCreated(address exchangeAddress, uint data);
+    event ExchangeCreated(address exchangeAddress);
 
-    function createExchange(uint data) external {
-        Exchange exchange = new Exchange(data, exchanges.length);
+    function createExchange(address openLabNFTContract, uint royaltyPercentage) external {
+        // Points to the OpenLabNFT contract that this Exchange instance should use
+        Exchange exchange = new Exchange(openLabNFTContract);
         exchanges.push(exchange);
-        emit ExchangeCreated(address(exchange), data);
+        emit ExchangeCreated(address(exchange));
     }
 
     function getExchanges() external view returns(Exchange[] memory _exchanges) {
@@ -30,12 +32,6 @@ contract ExchangeFactory is Ownable {
         exchanges[exchange.exchangeIndex].disableExchange();
         disabledCount++;
     }
-
-    function setEscrowAddress(Exchange exchange, address payable _address) public onlyOwner {
-        exchanges[exchange.exchangeIndex].escrowAddress = _address;
-    }
-
-
 
     function setRoyaltyPercentage(Exchange exchange, uint _royaltyPercentage) public onlyOwner {
         exchanges[exchange.index()].royalty = _royaltyPercentage;

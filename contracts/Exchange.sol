@@ -4,13 +4,18 @@ pragma solidity ^0.8.0;
 // add unit tests to each of these functions
 // if there is a bug we find, add a regression test so we can identify the buggy conditions
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 contract Exchange {
 
     // ---------------------------- Constructor ---------------------------------// 
 
-    constructor(uint _index) {
+    constructor(uint _index, uint _royaltyBase, uint _royaltyPercentage) {
         exchangeIndex = _index;
         isEnabled = true;
+        royaltyBase = _royaltyBase;
+        royaltyPercentage = _royaltyPercentage;
     }
 
     // ------------------------ Job structure ------------------------ //
@@ -19,14 +24,15 @@ contract Exchange {
         address payable client;
         address payable provider;
         uint jobCost;
-        // For now, payments should only be in Ether
-        // address payableToken;
+        address payableToken;
+        // jobDeadline
         string jobURI;
         JobStatus status;
     }
 
     enum JobStatus {
         OPEN,
+        ACTIVE,
         CLOSED,
         CANCELLED
     }
@@ -43,13 +49,17 @@ contract Exchange {
     uint jobIdCount;
 
     // Events for Graph protocol
-    event jobCreated(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
+    event jobCreated(uint indexed _jobId, address indexed _client, uint _jobCost, string _jobURI, JobStatus _status);
+    event jobActive(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobCancelled(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobClosed(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
 
+    event Received(address, uint);
+
     // Values set by owner of ExchangeFactory
     address public escrowAddress;
-    uint public royaltyPercentage = 5;
+    uint public royaltyPercentage;
+    uint public royaltyBase;
 
     // ------------------------ Core functions ------------------------ //
 
@@ -80,7 +90,7 @@ contract Exchange {
         sendViaCall(payable(escrowAddress), _jobCost);
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
-        emit jobCreated(jobIdCount, _client, _provider, _jobCost, _jobURI, job.status);
+        emit jobCreated(jobIdCount, _client, _jobCost, _jobURI, job.status);
 
     }
 
@@ -89,8 +99,8 @@ contract Exchange {
         require(sent, "Failed to send Ether");
     }
 
-    // check visibility
-    function closeJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) enabled {
+    // Only callable by provider
+    function closeJob(uint _jobId) external isValidJob(_jobId) isActiveJob(_jobId) isProvider(_jobId) enabled {
         Job memory job = jobsList[_jobId];
         
         job.status = JobStatus.CLOSED;
@@ -98,10 +108,8 @@ contract Exchange {
         emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
-    // check visibility
-    function cancelJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) enabled {
-        // Escrow handles returning funds back to client
-
+    // Only callable by client
+    function cancelJob(uint _jobId) external isValidJob(_jobId) isActiveJob(_jobId) isClient(_jobId) enabled {
         Job memory job = jobsList[_jobId];
         jobsList[_jobId].status = JobStatus.CANCELLED;
 
@@ -109,23 +117,41 @@ contract Exchange {
         emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
+    function swap(uint jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
+        address client = jobsList[jobId].client;
+        address provider = jobsList[jobId].provider;
+
+        // percentage sent to provider
+        uint providerRevenue = jobsList[jobId].jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
+        // percentage sent to LabDAO
+        uint marketRevenue = jobsList[jobId].jobCost * (royaltyPercentage / royaltyBase);
+
+        // Send NFT to client
+        OpenLabNFT.safeMint(client, tokenURI);
+
+        // Send Ether to provider and LabDAO
+        sendViaCall(payable(provider), providerRevenue);
+        sendViaCall(payable(labDao), marketRevenue);
+
+        // close job
+        closeJob(jobId);
+    }
+
+    function returnFunds(uint jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
+        sendViaCall(Exchange.jobsList[jobId].client, Exchange.jobsList[jobId].jobCost);
+        cancelJob(jobId);
+    }
+
     function disableExchange() enabled external {
         isEnabled = false;
     }
 
-    // function readJob(uint jobId) public view isValidJob(jobId) returns (address, address, uint, string memory, JobStatus) {
-    //     return (
-    //         jobsList[jobId].client, 
-    //         jobsList[jobId].provider, 
-    //         jobsList[jobId].jobCost, 
-    //         // jobsList[jobId].payableToken, 
-    //         jobsList[jobId].jobURI,
-    //         jobsList[jobId].status
-    //     );
-    // }
-
     // create functions to manually add "whitelisted" clients and providers by the multisig
     // this is probably a separate contract that is Ownable and can only be called by multisig
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
 
     // ------------------------ Function modifiers ------------------------ //
 
