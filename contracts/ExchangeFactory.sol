@@ -26,8 +26,18 @@ contract ExchangeFactory is Ownable {
         }
     }
 
-    function disable(Exchange exchange) external {
-        exchanges[exchange.index()].disable();
+    function disable(Exchange exchange) external onlyOwner {
+        exchanges[exchange.exchangeIndex].disableExchange();
         disabledCount++;
+    }
+
+    function setEscrowAddress(Exchange exchange, address payable _address) public onlyOwner {
+        exchanges[exchange.exchangeIndex].escrowAddress = _address;
+    }
+
+
+
+    function setRoyaltyPercentage(Exchange exchange, uint _royaltyPercentage) public onlyOwner {
+        exchanges[exchange.index()].royalty = _royaltyPercentage;
     }
 }

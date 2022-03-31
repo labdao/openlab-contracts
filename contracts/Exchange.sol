@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 // add unit tests to each of these functions
 // if there is a bug we find, add a regression test so we can identify the buggy conditions
 
-contract Exchange is ReentrancyGuard {
+contract Exchange {
+
+    // ---------------------------- Constructor ---------------------------------// 
+
+    constructor(uint _index) {
+        exchangeIndex = _index;
+        isEnabled = true;
+    }
 
     // ------------------------ Job structure ------------------------ //
 
@@ -28,6 +33,10 @@ contract Exchange is ReentrancyGuard {
 
     // ------------------------ State ------------------------ //
 
+    uint public exchangeIndex;
+    bool public isEnabled;
+    bool internal locked;
+
     mapping (uint => Job) public jobsList;
     mapping (address => bool) public clientAddresses;
     mapping (address => bool) public providerAddresses;
@@ -38,14 +47,15 @@ contract Exchange is ReentrancyGuard {
     event jobCancelled(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
     event jobClosed(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
 
-    // update this to escrow address
-    address public escrowAddress = 0x000000000000000000000000000000000000dEaD;
+    // Values set by owner of ExchangeFactory
+    address public escrowAddress;
+    uint public royaltyPercentage = 5;
 
     // ------------------------ Core functions ------------------------ //
 
     // ADD address _payableToken
     // client and provider should both sign for a job
-    function submitJob(address payable _client, address payable _provider, uint _jobCost, string memory _jobURI) nonReentrant public {
+    function submitJob(address payable _client, address payable _provider, uint _jobCost, string memory _jobURI) noReentrant enabled public {
         // Parameter validation
         require(address(msg.sender) == _client, "Only the client can call this function and submit a job");
         require(_client != _provider, "Client and provider addresses must be different");
@@ -80,7 +90,7 @@ contract Exchange is ReentrancyGuard {
     }
 
     // check visibility
-    function closeJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) {
+    function closeJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) enabled {
         Job memory job = jobsList[_jobId];
         
         job.status = JobStatus.CLOSED;
@@ -89,7 +99,7 @@ contract Exchange is ReentrancyGuard {
     }
 
     // check visibility
-    function cancelJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) {
+    function cancelJob(uint _jobId) internal isValidJob(_jobId) isActiveJob(_jobId) enabled {
         // Escrow handles returning funds back to client
 
         Job memory job = jobsList[_jobId];
@@ -97,6 +107,10 @@ contract Exchange is ReentrancyGuard {
 
         // We emit the event of job cancellation so that the Graph protocol can be updated
         emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
+    }
+
+    function disableExchange() enabled external {
+        isEnabled = false;
     }
 
     // function readJob(uint jobId) public view isValidJob(jobId) returns (address, address, uint, string memory, JobStatus) {
@@ -145,6 +159,15 @@ contract Exchange is ReentrancyGuard {
         _;
     }
 
-    constructor() ReentrancyGuard() {}
+    modifier noReentrant() {
+        require(!locked, "No re-entrancy");
+        locked = true;
+        _;
+        locked = false;
+    }
 
+    modifier enabled() {
+        require(isEnabled, "Exchange is not enabled");
+        _;
+    }
 }
