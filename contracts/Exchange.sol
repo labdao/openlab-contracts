@@ -55,9 +55,9 @@ contract Exchange {
 
     // ADD address _payableToken
     // client and provider should both sign for a job
-    function submitJob(address payable _client, address payable _provider, uint _jobCost, string memory _jobURI) noReentrant enabled public {
+    function submitJob(address payable _client, address payable _provider, uint _jobCost, string memory _jobURI) noReentrant enabled public payable {
         // Parameter validation
-        require(address(msg.sender) == _client, "Only the client can call this function and submit a job");
+        require(address(msg.sender) == _client, "Only the client can call this function");
         require(_client != _provider, "Client and provider addresses must be different");
         require(address(msg.sender).balance >= _jobCost, "Caller does not have enough funds to pay for the job");
 
