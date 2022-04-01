@@ -13,9 +13,10 @@ contract Exchange {
 
     // ---------------------------- Constructor ---------------------------------// 
 
-    constructor(address _factoryAddress, address _openLabNFTAddress, uint256 _royaltyPercentage) {
+    constructor(address _factoryAddress, address _factoryOwner, address _openLabNFTAddress, uint256 _royaltyPercentage) {
         isEnabled = true;
         factoryAddress = _factoryAddress;
+        factoryOwner = _factoryOwner;
         openLabNFTAddress = _openLabNFTAddress;
         royaltyPercentage = _royaltyPercentage;
     }
@@ -59,6 +60,7 @@ contract Exchange {
     event Received(address, uint256);
 
     address public factoryAddress;
+    address public factoryOwner;
 
     // Values set by owner of ExchangeFactory
     address public openLabNFTAddress;
@@ -145,13 +147,13 @@ contract Exchange {
 
         // Send funds to provider and LabDAO
         IERC20(job.payableToken).transferFrom(address(this), job.provider, providerRevenue);
-        IERC20(job.payableToken).transferFrom(address(this), payable(factoryAddress.owner()), marketRevenue);
+        IERC20(job.payableToken).transferFrom(address(this), payable(factoryOwner), marketRevenue);
 
         // Close job
         closeJob(jobId);
     }
 
-    function returnFunds(uint256 jobId) private payable isValidJob(jobId) isOpenJob(jobId) noReentrant enabled {
+    function returnFunds(uint256 jobId) external payable isValidJob(jobId) isOpenJob(jobId) noReentrant enabled {
         Job memory job = jobsList[jobId];
 
         // Refund 98% of deposit to prevent spamming of job creations
@@ -160,20 +162,24 @@ contract Exchange {
         uint256 heldAmount = job.jobCost - refundAmount;
 
         IERC20(job.payableToken).transferFrom(address(this), job.client, refundAmount);
-        IERC20(job.payableToken).transferFrom(address(this), payable(factoryAddress.owner()), heldAmount);
+        IERC20(job.payableToken).transferFrom(address(this), payable(factoryOwner), heldAmount);
         cancelJob(jobId);
     }
 
-
     // ------------------------ Administrative functions ------------------------ //
 
+    function setRoyaltyPercentage(uint256 _percentage) public enabled {
+        require(msg.sender == address(factoryOwner), "Only the factory owner can update the royalty percentage");
+        royaltyPercentage = _percentage;
+    }
+
     function addValidatedProvider(address _provider) public enabled {
-        require(msg.sender == address(factoryAddress.owner()), "Only the factory owner can add validated providers");
+        require(msg.sender == address(factoryOwner), "Only the factory owner can add validated providers");
         providerAddresses[_provider] = true;
     }
 
     function disableExchange() enabled external {
-        require(msg.sender == address(factoryAddress.owner()), "Only the factory owner can disable the exchange");
+        require(msg.sender == address(factoryOwner), "Only the factory owner can disable the exchange");
         isEnabled = false;
     }
 
@@ -234,4 +240,8 @@ contract Exchange {
         require(isEnabled, "Exchange is not enabled");
         _;
     }
+}
+
+interface IExchange {
+
 }
