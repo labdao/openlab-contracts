@@ -65,13 +65,14 @@ contract Exchange {
     // Values set by owner of ExchangeFactory
     address public openLabNFTAddress;
     uint256 public royaltyPercentage;
+    // Royalty base is 100% x 100 for decimal percentages
     uint256 public royaltyBase = 10000;
 
     // ------------------------ Core functions ------------------------ //
 
     // ADD address _payableToken
     // client and provider should both sign for a job
-    function submitJob(address payable _client, address payable _provider, address _payableToken, uint256 _jobCost, string memory _jobURI) public payable noReentrant enabled {
+    function submitJob(address payable _client, address _payableToken, uint256 _jobCost, string memory _jobURI) public payable noReentrant enabled {
         // Parameter validation
         require(address(msg.sender) == _client, "Only the client can call this function");
         // require(address(msg.sender).balance >= _jobCost, "Caller does not have enough funds to pay for the job");
@@ -132,22 +133,22 @@ contract Exchange {
 
     function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) noReentrant enabled {
         Job memory job = jobsList[jobId];
-
-        address client = jobsList[jobId].client;
-        address provider = jobsList[jobId].provider;
+        address client = job.client;
+        address provider = job.provider;
+        address payableToken = job.payableToken;
 
         // Percentage sent to provider
-        uint256 providerRevenue = jobsList[jobId].jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
+        uint256 providerRevenue = job.jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
         // Percentage sent to LabDAO
-        uint256 marketRevenue = jobsList[jobId].jobCost * (royaltyPercentage / royaltyBase);
+        uint256 marketRevenue = job.jobCost * (royaltyPercentage / royaltyBase);
 
         // Send NFT to client
-        IOpenLabNFT(openLabNFTAddress).safeMint(job.client, tokenURI);
+        IOpenLabNFT(openLabNFTAddress).safeMint(client, tokenURI);
         job.openLabNFTURI = tokenURI;
 
         // Send funds to provider and LabDAO
-        IERC20(job.payableToken).transferFrom(address(this), job.provider, providerRevenue);
-        IERC20(job.payableToken).transferFrom(address(this), payable(factoryOwner), marketRevenue);
+        IERC20(payableToken).transferFrom(address(this), provider, providerRevenue);
+        IERC20(payableToken).transferFrom(address(this), payable(factoryOwner), marketRevenue);
 
         // Close job
         closeJob(jobId);
@@ -240,8 +241,4 @@ contract Exchange {
         require(isEnabled, "Exchange is not enabled");
         _;
     }
-}
-
-interface IExchange {
-
 }
