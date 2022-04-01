@@ -11,10 +11,10 @@ contract Exchange {
 
     // ---------------------------- Constructor ---------------------------------// 
 
-    constructor(uint _index, uint _royaltyBase, uint _royaltyPercentage) {
-        exchangeIndex = _index;
+    constructor(address _factoryAddress, address _openLabNFTAddress, uint256 _royaltyPercentage) {
         isEnabled = true;
-        royaltyBase = _royaltyBase;
+        factoryAddress = _factoryAddress;
+        openLabNFTAddress = _openLabNFTAddress;
         royaltyPercentage = _royaltyPercentage;
     }
 
@@ -23,11 +23,12 @@ contract Exchange {
     struct Job {
         address payable client;
         address payable provider;
-        uint jobCost;
         address payableToken;
+        uint256 jobCost;
         // jobDeadline
         string jobURI;
         JobStatus status;
+        string openLabNFTURI;
     }
 
     enum JobStatus {
@@ -39,45 +40,44 @@ contract Exchange {
 
     // ------------------------ State ------------------------ //
 
-    uint public exchangeIndex;
     bool public isEnabled;
     bool internal locked;
 
-    mapping (uint => Job) public jobsList;
+    mapping (uint256 => Job) public jobsList;
     mapping (address => bool) public clientAddresses;
     mapping (address => bool) public providerAddresses;
-    uint jobIdCount;
+    uint256 jobIdCount;
 
     // Events for Graph protocol
-    event jobCreated(uint indexed _jobId, address indexed _client, uint _jobCost, string _jobURI, JobStatus _status);
-    event jobActive(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
-    event jobCancelled(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
-    event jobClosed(uint indexed _jobId, address indexed _client, address indexed _provider, uint _jobCost, string _jobURI, JobStatus _status);
+    event jobCreated(uint256 indexed _jobId, address indexed _client, address _payableToken, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event jobActive(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event jobCancelled(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event jobClosed(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status, string _openLabNFTURI);
 
-    event Received(address, uint);
+    event Received(address, uint256);
+
+    address public factoryAddress;
 
     // Values set by owner of ExchangeFactory
-    address public escrowAddress;
-    uint public royaltyPercentage;
-    uint public royaltyBase;
+    address public openLabNFTAddress;
+    uint256 public royaltyPercentage;
+    uint256 public royaltyBase = 10000;
 
     // ------------------------ Core functions ------------------------ //
 
     // ADD address _payableToken
     // client and provider should both sign for a job
-    function submitJob(address payable _client, address payable _provider, uint _jobCost, string memory _jobURI) noReentrant enabled public payable {
+    function submitJob(address payable _client, address payable _provider, address _payableToken, uint256 _jobCost, string memory _jobURI) noReentrant enabled public payable {
         // Parameter validation
         require(address(msg.sender) == _client, "Only the client can call this function");
-        require(_client != _provider, "Client and provider addresses must be different");
-        require(address(msg.sender).balance >= _jobCost, "Caller does not have enough funds to pay for the job");
+        // require(address(msg.sender).balance >= _jobCost, "Caller does not have enough funds to pay for the job");
 
         jobIdCount++;
         Job storage job = jobsList[jobIdCount];
 
         job.client = _client;
-        job.provider = _provider;
+        job.payableToken = _payableToken;
         job.jobCost = _jobCost;
-        // job.payableToken = _payableToken;
         // get jobURI from CLI
         job.jobURI = _jobURI;
         job.status = JobStatus.OPEN;
@@ -94,22 +94,24 @@ contract Exchange {
 
     }
 
-    function sendViaCall(address payable _to, uint amount) public payable {
+    function sendViaCall(address payable _to, uint256 amount) public payable {
         (bool sent, bytes memory data) = _to.call{value: amount}("");
         require(sent, "Failed to send Ether");
     }
 
-    // Only callable by provider
-    function closeJob(uint _jobId) external isValidJob(_jobId) isActiveJob(_jobId) isProvider(_jobId) enabled {
+    function acceptJob(uint256 _jobId) public isValidJob(_jobId) enabled {
+        require(providerAddresses[msg.sender], "Only validated providers can accept jobs");
+
         Job memory job = jobsList[_jobId];
-        
-        job.status = JobStatus.CLOSED;
-        // We emit the event of job closing so that the Graph protocol can be updated
-        emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
+        job.provider = msg.sender;
+        jobsList[_jobId].status = JobStatus.ACTIVE;
+
+        // We emit the event of job creation so that the Graph protocol can be used to index the job
+        emit jobActive(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
-    // Only callable by client
-    function cancelJob(uint _jobId) external isValidJob(_jobId) isActiveJob(_jobId) isClient(_jobId) enabled {
+    // Only callable by client for jobs that haven't been accepted
+    function cancelJob(uint256 _jobId) private isValidJob(_jobId) isOpenJob(_jobId) isClient(_jobId) enabled {
         Job memory job = jobsList[_jobId];
         jobsList[_jobId].status = JobStatus.CANCELLED;
 
@@ -117,27 +119,39 @@ contract Exchange {
         emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
-    function swap(uint jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
+    // Only callable by provider
+    function closeJob(uint256 _jobId) private isValidJob(_jobId) isActiveJob(_jobId) isProvider(_jobId) enabled {
+        Job memory job = jobsList[_jobId];
+        job.status = JobStatus.CLOSED;
+
+        // We emit the event of job closing so that the Graph protocol can be updated
+        emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status, job.openLabNFTURI);
+    }
+
+    function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
+        Job memory job = jobsList[jobId];
+
         address client = jobsList[jobId].client;
         address provider = jobsList[jobId].provider;
 
-        // percentage sent to provider
-        uint providerRevenue = jobsList[jobId].jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
-        // percentage sent to LabDAO
-        uint marketRevenue = jobsList[jobId].jobCost * (royaltyPercentage / royaltyBase);
+        // Percentage sent to provider
+        uint256 providerRevenue = jobsList[jobId].jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
+        // Percentage sent to LabDAO
+        uint256 marketRevenue = jobsList[jobId].jobCost * (royaltyPercentage / royaltyBase);
 
         // Send NFT to client
-        OpenLabNFT.safeMint(client, tokenURI);
+        IERC721(openLabNFTAddress).safeMint(job.client, tokenURI);
+        job.openLabNFTURI = tokenURI;
 
         // Send Ether to provider and LabDAO
-        sendViaCall(payable(provider), providerRevenue);
+        sendViaCall(payable(job.provider), providerRevenue);
         sendViaCall(payable(labDao), marketRevenue);
 
         // close job
         closeJob(jobId);
     }
 
-    function returnFunds(uint jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
+    function returnFunds(uint256 jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
         sendViaCall(Exchange.jobsList[jobId].client, Exchange.jobsList[jobId].jobCost);
         cancelJob(jobId);
     }
@@ -145,6 +159,8 @@ contract Exchange {
     function disableExchange() enabled external {
         isEnabled = false;
     }
+
+
 
     // create functions to manually add "whitelisted" clients and providers by the multisig
     // this is probably a separate contract that is Ownable and can only be called by multisig
@@ -155,22 +171,26 @@ contract Exchange {
 
     // ------------------------ Function modifiers ------------------------ //
 
-    modifier isValidJob(uint _jobId) {
+    modifier isValidJob(uint256 _jobId) {
         require(jobIdCount > 0 && _jobId > 0 && _jobId <= jobIdCount, "Job ID is not valid");
         _;
     }
 
-    modifier isActiveJob(uint _jobId) {
+    modifier isOpenJob(uint256 _jobId) {
         require(jobsList[_jobId].status == JobStatus.OPEN, "Job is not open");
+    }
+
+    modifier isActiveJob(uint256 _jobId) {
+        require(jobsList[_jobId].status == JobStatus.OPEN, "Job is not active");
         _;
     }
 
-    modifier isClient(uint _jobId) {
+    modifier isClient(uint256 _jobId) {
         require(jobsList[_jobId].client == msg.sender, "Only the client can call this function");
         _;
     }
 
-    modifier isProvider(uint _jobId) {
+    modifier isProvider(uint256 _jobId) {
         require(jobsList[_jobId].provider == msg.sender, "Only the provider can call this function");
         _;
     }
@@ -190,6 +210,11 @@ contract Exchange {
         locked = true;
         _;
         locked = false;
+    }
+
+    modifier onlyFactory() {
+        require(address(msg.sender) == factoryAddress, "Only the factory can call this function");
+        _;
     }
 
     modifier enabled() {

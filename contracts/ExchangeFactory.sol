@@ -4,36 +4,33 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Exchange.sol";
 
 contract ExchangeFactory is Ownable {
-    Exchange[] public exchanges;
 
-    uint disabledCount;
+    uint256 disabledCount;
+
+    mapping (address => bool) public exchangeEnabled;
 
     event ExchangeCreated(address exchangeAddress);
 
-    function createExchange(address openLabNFTContract, uint royaltyPercentage) external {
+    // Royalty percentage should be percentage number x 100
+    function createExchange(address openLabNFTContract, uint256 royaltyPercentage) external {
         // Points to the OpenLabNFT contract that this Exchange instance should use
-        Exchange exchange = new Exchange(openLabNFTContract);
-        exchanges.push(exchange);
+        Exchange exchange = new Exchange(address(this), openLabNFTContract);
+        exchangeEnabled[exchange.address] = true;
         emit ExchangeCreated(address(exchange));
     }
 
-    function getExchanges() external view returns(Exchange[] memory _exchanges) {
-        _exchanges = new Exchange[](exchanges.length - disabledCount);
-        uint count;
-        for (uint i = 0; i < exchanges.length; i++) {
-            if (exchanges[i].isEnabled()) {
-                _exchanges[count] = exchanges[i];
-                count++;
-            }
-        }
-    }
-
-    function disable(Exchange exchange) external onlyOwner {
-        exchanges[exchange.exchangeIndex].disableExchange();
+    function disable(address _exchange) external onlyOwner {
+        require(!exchangeEnabled[_exchange.address]);
+        
+        exchangeEnabled[_exchange.address] = false;
         disabledCount++;
     }
 
-    function setRoyaltyPercentage(Exchange exchange, uint _royaltyPercentage) public onlyOwner {
+    function setRoyaltyPercentage(address _exchange, uint256 _royaltyPercentage) public onlyOwner {
         exchanges[exchange.index()].royalty = _royaltyPercentage;
     }
+}
+
+interface IExchange {
+    function disableExchange()
 }
