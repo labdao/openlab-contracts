@@ -24,7 +24,7 @@ contract OpenLabNFT is ERC721, ERC721URIStorage, Ownable {
   // NOTE: add modifier so only validated provider can call this function
 
   // revisit this so only can be called by Exchange
-  function safeMint(address _to, string memory _tokenURI) internal {
+  function safeMint(address _to, string memory _tokenURI) external {
     uint256 tokenId = _tokenIdCounter.current();
     _tokenIdCounter.increment();
     _safeMint(_to, tokenId);
@@ -41,4 +41,8 @@ contract OpenLabNFT is ERC721, ERC721URIStorage, Ownable {
   function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
     return super.tokenURI(tokenId);
   }
+}
+
+interface IOpenLabNFT {
+  function safeMint(address _to, string memory _tokenURI) external;
 }

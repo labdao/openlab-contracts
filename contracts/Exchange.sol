@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 // if there is a bug we find, add a regression test so we can identify the buggy conditions
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./OpenLabNFT.sol";
 
 contract Exchange {
 
@@ -46,7 +48,7 @@ contract Exchange {
     mapping (uint256 => Job) public jobsList;
     mapping (address => bool) public clientAddresses;
     mapping (address => bool) public providerAddresses;
-    uint256 jobIdCount;
+    uint256 jobIdCount = 0;
 
     // Events for Graph protocol
     event jobCreated(uint256 indexed _jobId, address indexed _client, address _payableToken, uint256 _jobCost, string _jobURI, JobStatus _status);
@@ -67,7 +69,7 @@ contract Exchange {
 
     // ADD address _payableToken
     // client and provider should both sign for a job
-    function submitJob(address payable _client, address payable _provider, address _payableToken, uint256 _jobCost, string memory _jobURI) noReentrant enabled public payable {
+    function submitJob(address payable _client, address payable _provider, address _payableToken, uint256 _jobCost, string memory _jobURI) public payable noReentrant enabled {
         // Parameter validation
         require(address(msg.sender) == _client, "Only the client can call this function");
         // require(address(msg.sender).balance >= _jobCost, "Caller does not have enough funds to pay for the job");
@@ -78,32 +80,30 @@ contract Exchange {
         job.client = _client;
         job.payableToken = _payableToken;
         job.jobCost = _jobCost;
-        // get jobURI from CLI
         job.jobURI = _jobURI;
         job.status = JobStatus.OPEN;
 
         // Validates the client and provider addresses
         clientAddresses[_client] = true;
-        providerAddresses[_provider] = true;
 
-        // Send deposited amount to the escrow contract
-        sendViaCall(payable(escrowAddress), _jobCost);
+        // Receive deposit amount
+        IERC20(_payableToken).transferFrom(msg.sender, address(this), _jobCost);
+        emit Received(_payableToken, _jobCost);
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
-        emit jobCreated(jobIdCount, _client, _jobCost, _jobURI, job.status);
-
+        emit jobCreated(jobIdCount, _client, _payableToken, _jobCost, _jobURI, job.status);
     }
 
-    function sendViaCall(address payable _to, uint256 amount) public payable {
-        (bool sent, bytes memory data) = _to.call{value: amount}("");
-        require(sent, "Failed to send Ether");
-    }
+    // function sendViaCall(address payable _to, uint256 amount) public payable {
+    //     (bool sent, bytes memory data) = _to.call{value: amount}("");
+    //     require(sent, "Failed to send Ether");
+    // }
 
     function acceptJob(uint256 _jobId) public isValidJob(_jobId) enabled {
         require(providerAddresses[msg.sender], "Only validated providers can accept jobs");
 
         Job memory job = jobsList[_jobId];
-        job.provider = msg.sender;
+        job.provider = payable(msg.sender);
         jobsList[_jobId].status = JobStatus.ACTIVE;
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
@@ -128,7 +128,7 @@ contract Exchange {
         emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status, job.openLabNFTURI);
     }
 
-    function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) {
+    function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) noReentrant enabled {
         Job memory job = jobsList[jobId];
 
         address client = jobsList[jobId].client;
@@ -140,30 +140,42 @@ contract Exchange {
         uint256 marketRevenue = jobsList[jobId].jobCost * (royaltyPercentage / royaltyBase);
 
         // Send NFT to client
-        IERC721(openLabNFTAddress).safeMint(job.client, tokenURI);
+        IOpenLabNFT(openLabNFTAddress).safeMint(job.client, tokenURI);
         job.openLabNFTURI = tokenURI;
 
-        // Send Ether to provider and LabDAO
-        sendViaCall(payable(job.provider), providerRevenue);
-        sendViaCall(payable(labDao), marketRevenue);
+        // Send funds to provider and LabDAO
+        IERC20(job.payableToken).transferFrom(address(this), job.provider, providerRevenue);
+        IERC20(job.payableToken).transferFrom(address(this), payable(factoryAddress.owner()), marketRevenue);
 
-        // close job
+        // Close job
         closeJob(jobId);
     }
 
-    function returnFunds(uint256 jobId) external payable isValidJob(jobId) isActiveJob(jobId) {
-        sendViaCall(Exchange.jobsList[jobId].client, Exchange.jobsList[jobId].jobCost);
+    function returnFunds(uint256 jobId) private payable isValidJob(jobId) isOpenJob(jobId) noReentrant enabled {
+        Job memory job = jobsList[jobId];
+
+        // Refund 98% of deposit to prevent spamming of job creations
+        uint256 refundAmount = job.jobCost * 98 / 100;
+        // Send remaining 2% to LabDAO
+        uint256 heldAmount = job.jobCost - refundAmount;
+
+        IERC20(job.payableToken).transferFrom(address(this), job.client, refundAmount);
+        IERC20(job.payableToken).transferFrom(address(this), payable(factoryAddress.owner()), heldAmount);
         cancelJob(jobId);
     }
 
-    function disableExchange() enabled external {
-        isEnabled = false;
+
+    // ------------------------ Administrative functions ------------------------ //
+
+    function addValidatedProvider(address _provider) public enabled {
+        require(msg.sender == address(factoryAddress.owner()), "Only the factory owner can add validated providers");
+        providerAddresses[_provider] = true;
     }
 
-
-
-    // create functions to manually add "whitelisted" clients and providers by the multisig
-    // this is probably a separate contract that is Ownable and can only be called by multisig
+    function disableExchange() enabled external {
+        require(msg.sender == address(factoryAddress.owner()), "Only the factory owner can disable the exchange");
+        isEnabled = false;
+    }
 
     receive() external payable {
         emit Received(msg.sender, msg.value);
@@ -178,6 +190,7 @@ contract Exchange {
 
     modifier isOpenJob(uint256 _jobId) {
         require(jobsList[_jobId].status == JobStatus.OPEN, "Job is not open");
+        _;
     }
 
     modifier isActiveJob(uint256 _jobId) {
@@ -196,12 +209,12 @@ contract Exchange {
     }
 
     modifier isValidClient(address _client) {
-        require(clientAddresses[_client], "Client address is not valid");
+        require(clientAddresses[_client], "Client address not valid");
         _;
     }
 
     modifier isValidProvider(address _provider) {
-        require(providerAddresses[_provider], "Provider address is not valid");
+        require(providerAddresses[_provider], "Provider address not valid");
         _;
     }
 

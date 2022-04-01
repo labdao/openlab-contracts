@@ -19,18 +19,20 @@ contract ExchangeFactory is Ownable {
         emit ExchangeCreated(address(exchange));
     }
 
+    function setRoyaltyPercentage(address _exchange, uint256 _royaltyPercentage) public onlyOwner {
+        require(!exchangeEnabled[_exchange]);
+        exchanges[exchange.index()].royalty = _royaltyPercentage;
+    }
+
+
+
     function disable(address _exchange) external onlyOwner {
-        require(!exchangeEnabled[_exchange.address]);
-        
+        require(!exchangeEnabled[_exchange]);
         exchangeEnabled[_exchange.address] = false;
         disabledCount++;
     }
-
-    function setRoyaltyPercentage(address _exchange, uint256 _royaltyPercentage) public onlyOwner {
-        exchanges[exchange.index()].royalty = _royaltyPercentage;
-    }
 }
 
-interface IExchange {
-    function disableExchange()
+interface IExchangeFactory {
+    function disable() external {}
 }
