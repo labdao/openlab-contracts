@@ -154,7 +154,7 @@ contract Exchange {
         closeJob(jobId);
     }
 
-    function returnFunds(uint256 jobId) external payable isValidJob(jobId) isOpenJob(jobId) noReentrant enabled {
+    function returnFunds(uint256 jobId) external payable isValidJob(jobId) isOpenJob(jobId) isClient(jobId) noReentrant enabled {
         Job memory job = jobsList[jobId];
 
         // Refund 98% of deposit to prevent spamming of job creations
