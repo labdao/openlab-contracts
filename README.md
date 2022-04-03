@@ -28,8 +28,6 @@ The OpenLabNFT contract is our ERC721 token which gets transferred upon completi
 
 ## In Progress
 
-* Ownable ExchangeFactory my LabDAO multisig
-* Payable token toggling
-* Add test files to Hardhat
-* Polygon testnet deployment
+* Happy path testing of contracts
+* The Graph subgraphs for Mumbai testnet contracts
 * Polygon mainnet deployment
