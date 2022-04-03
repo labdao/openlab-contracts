@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// add unit tests to each of these functions
-// if there is a bug we find, add a regression test so we can identify the buggy conditions
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./OpenLabNFT.sol";
 
 contract Exchange {
