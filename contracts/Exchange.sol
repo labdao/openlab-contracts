@@ -81,7 +81,7 @@ contract Exchange {
         job.jobURI = _jobURI;
         job.status = JobStatus.OPEN;
 
-        // Validates the client and provider addresses
+        // Validates the client address
         clientAddresses[_client] = true;
 
         // Receive deposit amount
@@ -164,18 +164,32 @@ contract Exchange {
 
     // ------------------------ Administrative functions ------------------------ //
 
-    function setRoyaltyPercentage(uint256 _percentage) public enabled {
-        require(msg.sender == address(factoryOwner), "Only the factory owner can update the royalty percentage");
+    function setRoyaltyPercentage(uint256 _percentage) public isAdmin enabled {
         royaltyPercentage = _percentage;
     }
 
-    function addValidatedProvider(address _provider) public enabled {
-        require(msg.sender == address(factoryOwner), "Only the factory owner can add validated providers");
+    function addValidatedProvider(address _provider) public isAdmin enabled {
         providerAddresses[_provider] = true;
     }
 
-    function disableExchange() enabled external {
-        require(msg.sender == address(factoryOwner), "Only the factory owner can disable the exchange");
+    function removeValidatedProvider(address _provider) public isAdmin enabled {
+        providerAddresses[_provider] = false;
+    }
+
+    function adminCancelJob(uint256 _jobId) public payable isAdmin isValidJob(_jobId) isActiveJob(_jobId) enabled {
+        Job memory job = jobsList[_jobId];
+        address client = job.client;
+        address payableToken = job.payableToken;
+        uint256 cost = job.jobCost;
+
+        // Return 100% of funds back to client
+        IERC20(payableToken).transferFrom(address(this), client, cost);
+
+        // Update job status
+        cancelJob(_jobId);
+    }
+
+    function disableExchange() isAdmin enabled external {
         isEnabled = false;
     }
 
@@ -217,6 +231,11 @@ contract Exchange {
 
     modifier isValidProvider(address _provider) {
         require(providerAddresses[_provider], "Provider address not valid");
+        _;
+    }
+
+    modifier isAdmin() {
+        require(msg.sender == address(factoryOwner), "Only the factory owner can call this function");
         _;
     }
 
