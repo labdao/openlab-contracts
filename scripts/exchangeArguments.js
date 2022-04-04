@@ -6,5 +6,5 @@ module.exports = [
     // Deployed OpenLabNFT address
     "0x3Cf622fd0d47E30cace6D9246CB69fefcFdfA8A0",
     // Deployed royalty percentage
-    5,
+    500,
 ];
