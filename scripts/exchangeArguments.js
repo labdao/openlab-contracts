@@ -1,10 +1,10 @@
 module.exports = [
     // Deployed factory address
-    "0x221fec5340c8606728E2470Aeeb368e10BD96278",
+    "0x3B7bAcB0DB759E8Ba5BeeddAFeA4Fb65B89DC4Ea",
     // Factory owner (deployer address)
     "0x1df13A64355BE17118a05C00dA9815DAa4ab1ea0",
     // Deployed OpenLabNFT address
-    "0x3Cf622fd0d47E30cace6D9246CB69fefcFdfA8A0",
+    "0xC9f04360ca658d1baF50398f754F00bAE56ebF04",
     // Deployed royalty percentage
     500,
 ];
