@@ -92,15 +92,10 @@ contract Exchange {
         emit jobCreated(jobIdCount, _client, _payableToken, _jobCost, _jobURI, job.status);
     }
 
-    // function sendViaCall(address payable _to, uint256 amount) public payable {
-    //     (bool sent, bytes memory data) = _to.call{value: amount}("");
-    //     require(sent, "Failed to send Ether");
-    // }
-
     function acceptJob(uint256 _jobId) public isValidJob(_jobId) enabled {
         require(providerAddresses[msg.sender], "Only validated providers can accept jobs");
 
-        Job memory job = jobsList[_jobId];
+        Job storage job = jobsList[_jobId];
         job.provider = payable(msg.sender);
         jobsList[_jobId].status = JobStatus.ACTIVE;
 
@@ -110,7 +105,7 @@ contract Exchange {
 
     // Only callable by client for jobs that haven't been accepted
     function cancelJob(uint256 _jobId) private isValidJob(_jobId) isOpenJob(_jobId) isClient(_jobId) enabled {
-        Job memory job = jobsList[_jobId];
+        Job storage job = jobsList[_jobId];
         jobsList[_jobId].status = JobStatus.CANCELLED;
 
         // We emit the event of job cancellation so that the Graph protocol can be updated
@@ -119,7 +114,7 @@ contract Exchange {
 
     // Only callable by provider
     function closeJob(uint256 _jobId) private isValidJob(_jobId) isActiveJob(_jobId) isProvider(_jobId) enabled {
-        Job memory job = jobsList[_jobId];
+        Job storage job = jobsList[_jobId];
         job.status = JobStatus.CLOSED;
 
         // We emit the event of job closing so that the Graph protocol can be updated
@@ -127,7 +122,7 @@ contract Exchange {
     }
 
     function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) noReentrant enabled {
-        Job memory job = jobsList[jobId];
+        Job storage job = jobsList[jobId];
         address client = job.client;
         address provider = job.provider;
         address payableToken = job.payableToken;
@@ -150,7 +145,7 @@ contract Exchange {
     }
 
     function returnFunds(uint256 jobId) external payable isValidJob(jobId) isOpenJob(jobId) isClient(jobId) noReentrant enabled {
-        Job memory job = jobsList[jobId];
+        Job storage job = jobsList[jobId];
 
         // Refund 98% of deposit to prevent spamming of job creations
         uint256 refundAmount = job.jobCost * 98 / 100;
@@ -177,7 +172,7 @@ contract Exchange {
     }
 
     function adminCancelJob(uint256 _jobId) public payable isAdmin isValidJob(_jobId) isActiveJob(_jobId) enabled {
-        Job memory job = jobsList[_jobId];
+        Job storage job = jobsList[_jobId];
         address client = job.client;
         address payableToken = job.payableToken;
         uint256 cost = job.jobCost;
