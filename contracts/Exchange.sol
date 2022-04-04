@@ -137,8 +137,8 @@ contract Exchange {
         job.openLabNFTURI = tokenURI;
 
         // Send funds to provider and LabDAO
-        IERC20(payableToken).transferFrom(address(this), provider, providerRevenue);
-        IERC20(payableToken).transferFrom(address(this), payable(factoryOwner), marketRevenue);
+        IERC20(payableToken).transfer(provider, providerRevenue);
+        IERC20(payableToken).transfer(factoryOwner, marketRevenue);
 
         // Close job
         closeJob(jobId);
@@ -152,8 +152,8 @@ contract Exchange {
         // Send remaining 2% to LabDAO
         uint256 heldAmount = job.jobCost - refundAmount;
 
-        IERC20(job.payableToken).transferFrom(address(this), job.client, refundAmount);
-        IERC20(job.payableToken).transferFrom(address(this), payable(factoryOwner), heldAmount);
+        IERC20(job.payableToken).transfer(job.client, refundAmount);
+        IERC20(job.payableToken).transfer(factoryOwner, heldAmount);
         cancelJob(jobId);
     }
 
@@ -178,7 +178,7 @@ contract Exchange {
         uint256 cost = job.jobCost;
 
         // Return 100% of funds back to client
-        IERC20(payableToken).transferFrom(address(this), client, cost);
+        IERC20(payableToken).transfer(client, cost);
 
         // Update job status
         cancelJob(_jobId);
