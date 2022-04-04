@@ -3,9 +3,9 @@
 **Note:** WIP.
 
 Deployed contracts on Polygon Mumbai Testnet (as of 02 Apr 2022)
-* [ExchangeFactory](https://mumbai.polygonscan.com/address/0xfe4a6f713d9d28a0afd9b7934418ae5b5b71230a#code)
-* [Exchange](https://mumbai.polygonscan.com/address/0xad987cdee0b0c42789a3ecfabf23382424bb7ae0#cod)
-* [OpenLabNFT](https://mumbai.polygonscan.com/address/0x18d7EAA555D813595BCEBDaDD6b0C55A8FEa89c7#code)
+* [ExchangeFactory](https://mumbai.polygonscan.com/address/0x8c7D8898972d354E6a7f3f8d84aa7924Cd76a5Aa#code)
+* [Exchange](https://mumbai.polygonscan.com/address/0xd1d81ccafc52f51b7799527ca8f516dc8f35bf48#code)
+* [OpenLabNFT](https://mumbai.polygonscan.com/address/0x729B0Cd5bBb32F6FD121389b39e2Dda4dc5Ae95d#code)
 
 ## Contract Descriptions
 
