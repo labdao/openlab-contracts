@@ -127,10 +127,10 @@ contract Exchange {
         address provider = job.provider;
         address payableToken = job.payableToken;
 
-        // Percentage sent to provider
-        uint256 providerRevenue = job.jobCost * (royaltyPercentage - royaltyPercentage) / royaltyBase;
         // Percentage sent to LabDAO
-        uint256 marketRevenue = job.jobCost * (royaltyPercentage / royaltyBase);
+        uint256 marketRevenue = (job.jobCost * royaltyPercentage) / royaltyBase;
+        // Percentage sent to provider
+        uint256 providerRevenue = job.jobCost - marketRevenue;
 
         // Send NFT to client
         IOpenLabNFT(openLabNFTAddress).safeMint(client, tokenURI);
