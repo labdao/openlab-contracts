@@ -205,7 +205,7 @@ contract Exchange {
     }
 
     modifier isActiveJob(uint256 _jobId) {
-        require(jobsList[_jobId].status == JobStatus.OPEN, "Job is not active");
+        require(jobsList[_jobId].status == JobStatus.ACTIVE, "Job is not active");
         _;
     }
 
