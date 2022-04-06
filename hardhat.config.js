@@ -1,6 +1,7 @@
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require('hardhat-abi-exporter');
 
 module.exports = {
   defaultNetwork: "matic",
@@ -23,5 +24,9 @@ module.exports = {
         runs: 200
       }
     }
+  },
+  abiExporter: {
+    path: './abi/',
+    clear: true,
   },
 }
