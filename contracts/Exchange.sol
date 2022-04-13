@@ -184,6 +184,10 @@ contract Exchange {
         cancelJob(_jobId);
     }
 
+    function updateNFTContractAddress(address _openLabNFTAddress) public isAdmin enabled {
+        openLabNFTAddress = _openLabNFTAddress;
+    }
+
     function disableExchange() isAdmin enabled external {
         isEnabled = false;
     }
