@@ -16,7 +16,7 @@ contract OpenLabNFT is ERC721, ERC721URIStorage {
 
   function _baseURI() internal pure override returns (string memory) {
     // base URI points to IPFS, then we append the CID 
-    return "ipfs.io://";
+    return "ipfs://";
   }
 
   // NOTE: add modifier so only validated provider can call this function
