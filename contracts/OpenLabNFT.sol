@@ -7,17 +7,21 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract OpenLabNFT is ERC721, ERC721URIStorage {
 
-  // ---------------------------- State Management ----------------------------------------//
+  // ---------------------------- State Management ---------------------------------------- //
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIdCounter;
 
-  // ---------------------------- Constructor ----------------------------------------//
+  // ---------------------------- Constructor ---------------------------------------- //
   constructor() ERC721("OpenLab NFT", "OLNFT") {}
 
   function _baseURI() internal pure override returns (string memory) {
     // base URI points to IPFS, then we append the CID 
     return "ipfs://";
   }
+
+  // ---------------------------- Events for Subgraph --------------------------------- //
+
+  event tokenCreated(uint256 indexed _tokenId, string _tokenURI);
 
   // NOTE: add modifier so only validated provider can call this function
 
@@ -27,6 +31,8 @@ contract OpenLabNFT is ERC721, ERC721URIStorage {
     _tokenIdCounter.increment();
     _safeMint(_to, tokenId);
     _setTokenURI(tokenId, _tokenURI);
+
+    emit tokenCreated(tokenId, _tokenURI);
   }
 
   // ---------------------------- Overrides ----------------------------------------//
