@@ -188,6 +188,10 @@ contract Exchange {
         openLabNFTAddress = _openLabNFTAddress;
     }
 
+    function updateOwner(address _newOwner) public isAdmin enabled {
+        factoryOwner = _newOwner;
+    }
+
     function disableExchange() isAdmin enabled external {
         isEnabled = false;
     }
