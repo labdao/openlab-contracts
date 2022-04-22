@@ -7,6 +7,11 @@ Deployed contracts on Polygon Mumbai Testnet (as of 15 Apr 2022)
 * [Exchange](https://mumbai.polygonscan.com/address/0xfee53bffb6b70593478cd027cb2b52776fd8c064#contracts)
 * [OpenLabNFT](https://mumbai.polygonscan.com/address/0x29bdc464C50F7680259242E5E2F68ab1FC75C964#contracts)
 
+Gnosis Chain (as of 22 Apr 2022)
+* [ExchangeFactory](https://blockscout.com/xdai/mainnet/address/0x630B35Be870fA1E148952B55DD336dbE5A872fA1/contracts)
+* [Exchange]()
+* [OpenLabNFT](https://blockscout.com/xdai/mainnet/address/0xaA692e39e33cCb7B07b8cb488a45C7ED1F55c80b/contracts)
+
 ## Contract Descriptions
 
 ![Contract Flow](static/labdao-contracts_30Mar2022.png)

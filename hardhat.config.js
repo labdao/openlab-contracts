@@ -11,6 +11,11 @@ module.exports = {
     matic: {
       url: "https://rpc-mumbai.maticvigil.com",
       accounts: [process.env.PRIVATE_KEY]
+    },
+    gnosis: {
+      url: "https://rpc.gnosischain.com/",
+      network_id: 100,
+      accounts: [process.env.PRIVATE_KEY]
     }
   },
   etherscan: {
