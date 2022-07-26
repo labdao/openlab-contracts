@@ -7,10 +7,9 @@ Deployed contracts on Polygon Mumbai Testnet (as of 15 Apr 2022)
 * [Exchange](https://mumbai.polygonscan.com/address/0xfee53bffb6b70593478cd027cb2b52776fd8c064#contracts)
 * [OpenLabNFT](https://mumbai.polygonscan.com/address/0x29bdc464C50F7680259242E5E2F68ab1FC75C964#contracts)
 
-## Contract Descriptions
+## Contract States
 
-![Contract Flow](static/labdao-contracts_30Mar2022.png)
-WIP graphic to be updated
+![image](https://user-images.githubusercontent.com/18559148/177638508-cbf698ae-a726-43ef-a407-4707054dfbea.png)
 
 ### Exchange.sol
 
