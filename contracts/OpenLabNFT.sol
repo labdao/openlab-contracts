@@ -21,7 +21,7 @@ contract OpenLabNFT is ERC721, ERC721URIStorage {
 
   // ---------------------------- Events for Subgraph --------------------------------- //
 
-  event tokenCreated(uint256 indexed _tokenId, string _tokenURI);
+  event TokenCreated(uint256 indexed _tokenId, string _tokenURI);
 
   // NOTE: add modifier so only validated provider can call this function
 
@@ -32,7 +32,7 @@ contract OpenLabNFT is ERC721, ERC721URIStorage {
     _safeMint(_to, tokenId);
     _setTokenURI(tokenId, _tokenURI);
 
-    emit tokenCreated(tokenId, _tokenURI);
+    emit TokenCreated(tokenId, _tokenURI);
   }
 
   // ---------------------------- Overrides ----------------------------------------//
