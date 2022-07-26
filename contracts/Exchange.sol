@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -47,10 +47,10 @@ contract Exchange {
     uint256 jobIdCount = 0;
 
     // Events for Graph protocol
-    event jobCreated(uint256 indexed _jobId, address indexed _client, address _payableToken, uint256 _jobCost, string _jobURI, JobStatus _status);
-    event jobActive(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
-    event jobCancelled(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
-    event jobClosed(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status, string _openLabNFTURI);
+    event JobCreated(uint256 indexed _jobId, address indexed _client, address _payableToken, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event JobActive(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event JobCancelled(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status);
+    event JobClosed(uint256 indexed _jobId, address indexed _client, address indexed _provider, uint256 _jobCost, string _jobURI, JobStatus _status, string _openLabNFTURI);
 
     event Received(address, uint256);
 
@@ -89,7 +89,7 @@ contract Exchange {
         emit Received(_payableToken, _jobCost);
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
-        emit jobCreated(jobIdCount, _client, _payableToken, _jobCost, _jobURI, job.status);
+        emit JobCreated(jobIdCount, _client, _payableToken, _jobCost, _jobURI, job.status);
     }
 
     function acceptJob(uint256 _jobId) public isValidJob(_jobId) enabled {
@@ -100,7 +100,7 @@ contract Exchange {
         jobsList[_jobId].status = JobStatus.ACTIVE;
 
         // We emit the event of job creation so that the Graph protocol can be used to index the job
-        emit jobActive(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
+        emit JobActive(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
     // Only callable by client for jobs that haven't been accepted
@@ -109,7 +109,7 @@ contract Exchange {
         jobsList[_jobId].status = JobStatus.CANCELLED;
 
         // We emit the event of job cancellation so that the Graph protocol can be updated
-        emit jobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
+        emit JobCancelled(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status);
     }
 
     // Only callable by provider
@@ -118,7 +118,7 @@ contract Exchange {
         job.status = JobStatus.CLOSED;
 
         // We emit the event of job closing so that the Graph protocol can be updated
-        emit jobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status, job.openLabNFTURI);
+        emit JobClosed(_jobId, job.client, job.provider, job.jobCost, job.jobURI, job.status, job.openLabNFTURI);
     }
 
     function swap(uint256 jobId, string memory tokenURI) external payable isValidJob(jobId) isActiveJob(jobId) noReentrant enabled {
